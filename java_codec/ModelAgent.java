@@ -8,9 +8,11 @@ import org.rlcommunity.rlglue.codec.taskspec.TaskSpec;
 public class ModelAgent implements AgentInterface {
 
     private Random rand = new Random();
-   
-    private double epsilon = 0.05;
-    private double delta = 0.01;
+    
+    private double epsilon(int state) {
+        return Math.pow(visitsSum[state], -2.0/3);
+    }
+    private double delta = 0.1;
     private double gamma;
     
     // The number of states
@@ -30,6 +32,7 @@ public class ModelAgent implements AgentInterface {
     // Counters for the number of times each state-action pair has been visited.
     // visits[s][a] is the number of times action a has been taken in state s.
     private int[][] visits;
+    private int[] visitsSum;
 
     // The optimal stationary Markov policy based on the current information.
     // pi[s] is the action to take in state s.
@@ -41,6 +44,7 @@ public class ModelAgent implements AgentInterface {
 
     // The current state and action
     private int state, action;
+    private int steps;
 
     public void agent_init(String taskSpecification) {
         TaskSpec ts = new TaskSpec(taskSpecification);
@@ -51,7 +55,7 @@ public class ModelAgent implements AgentInterface {
 
         // Get the discount factor for the task
         gamma = ts.getDiscountFactor();	
-        gamma = Math.min(gamma, 0.95);
+        gamma = Math.min(gamma, 0.8);
         
         // The the total number of states and actions
         S = ts.getDiscreteObservationRange(0).getMax() + 1;
@@ -71,17 +75,19 @@ public class ModelAgent implements AgentInterface {
                 r[s][a] = ts.getRewardMax();
 
         // Initialize the number of visits to each state-action pair
-        visits = new int[S][A];
+        visits    = new int[S][A];
+        visitsSum = new int[S];
 
         // Initialize the policy and value function
         pi = new int[S];
-        v = new double[S];	
+        v = new double[S];
     }
     
     public Action agent_start(Observation observation) {
         state = observation.getInt(0);	
         action = chooseAction(state);
-        visits[state][action]++;
+        visits   [state][action]++;
+        visitsSum[state]++;
 
         // Return the choosen action
         Action returnAction = new Action(1, 0, 0);   
@@ -90,6 +96,7 @@ public class ModelAgent implements AgentInterface {
     }
    
     public Action agent_step(double reward, Observation observation) {
+        steps++;
         int nextState = observation.getInt(0);
 
         // Update our current beliefs about the transition probabilities
@@ -110,7 +117,8 @@ public class ModelAgent implements AgentInterface {
 
         // Choose an action w.r.t. the current policy
         action = chooseAction(state);
-        visits[state][action]++;       	
+        visits   [state][action]++;       	
+        visitsSum[state]++;
 
         // Return the choosen action
         Action returnAction = new Action(1, 0, 0);
@@ -119,6 +127,7 @@ public class ModelAgent implements AgentInterface {
     }
     
     public void agent_end(double reward) {
+        steps++;
         // Update our current beliefs about the expected rewards	
         r[state][action] = ((visits[state][action] - 1) * r[state][action] + reward) / visits[state][action];
     }
@@ -188,9 +197,24 @@ public class ModelAgent implements AgentInterface {
     }  
     
     public int chooseAction(int state) {
-        if (rand.nextDouble() <= epsilon)
-            return rand.nextInt(A);
-        else
+        if (rand.nextDouble() <= epsilon(state)) {
+            double sum = 0.0;
+            for (int a = 0; a < A; ++a) {
+                sum += 1.0 / (visits[state][a] + 1);
+            }
+            
+            double r = rand.nextDouble() * sum;
+            
+            double limit = 0;
+            for(int a = 0; a < A; ++a) {
+                limit += 1.0 / (visits[state][a] + 1);
+                
+                if (limit >= r) {
+                    return a;
+                }
+            }
+            return A - 1;
+        } else
             return pi[state];
     }
 

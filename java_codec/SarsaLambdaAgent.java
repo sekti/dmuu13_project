@@ -27,21 +27,21 @@ public class SarsaLambdaAgent implements AgentInterface {
         TaskSpec ts = new TaskSpec(taskSpecification);
 
         /* Make sure that we can handle the problem as specified.
-	 * It is assumed that the actions and observations consists of only discrete 
-	 * vectors of integers.
-	 */
-	assert (ts.getNumContinuousActionDims() == 0);
-	assert (ts.getNumContinuousObsDims() == 0);
-	
-	numStates = ts.getDiscreteObservationRange(0).getMax() + 1;
-        numActions = ts.getDiscreteActionRange(0).getMax() + 1;
+         * It is assumed that the actions and observations consists of only discrete 
+         * vectors of integers.
+         */
+        assert (ts.getNumContinuousActionDims() == 0);
+        assert (ts.getNumContinuousObsDims() == 0);
+        
+        numStates  = ts.getDiscreteObservationRange(0).getMax() + 1;
+        numActions = ts.getDiscreteActionRange     (0).getMax() + 1;
 
-	gamma = ts.getDiscountFactor();	
+        gamma = ts.getDiscountFactor();	
 
         valueFunction = new double[numActions][numStates];
 
-	// This will initialize the trace to 0 for all states and actions
-	trace = new double[numActions][numStates];  
+        // This will initialize the trace to 0 for all states and actions
+        trace = new double[numActions][numStates];
     }
     
     public Action agent_start(Observation observation) {
@@ -53,10 +53,13 @@ public class SarsaLambdaAgent implements AgentInterface {
          */
         Action returnAction = new Action(1, 0, 0);
         returnAction.intArray[0] = newActionInt;       
-	
+    
         lastAction = returnAction.duplicate();
         lastObservation = observation.duplicate();
-
+        
+        /* Reset the trace because we start anew! */
+        trace = new double[numActions][numStates];
+        
         return returnAction;
     }
 
@@ -69,23 +72,24 @@ public class SarsaLambdaAgent implements AgentInterface {
      * @return
      */
     public Action agent_step(double reward, Observation observation) {
-        int newStateInt = observation.getInt(0);
-        int lastStateInt = lastObservation.getInt(0);
+        int newStateInt   = observation.getInt(0);
+        int lastStateInt  = lastObservation.getInt(0);
         int lastActionInt = lastAction.getInt(0);
-        int newActionInt = egreedy(newStateInt);      
+        int newActionInt  = egreedy(newStateInt);      
 
-	double Q_sa = valueFunction[lastActionInt][lastStateInt];
+        double Q_sa = valueFunction[lastActionInt][lastStateInt];
         double Q_sprime_aprime = valueFunction[newActionInt][newStateInt];
-	
-	double delta = reward + gamma * Q_sprime_aprime - Q_sa;
-	
-	trace[lastActionInt][lastStateInt] += 1;
-	
-	for (int i = 0; i < numStates; i++) 
-	    for (int j = 0; j < numActions; j++) {
-		valueFunction[j][i] += alpha * delta * trace[j][i];
-		trace[j][i] *= gamma * lambda;
-	    }
+    
+        double delta = reward + gamma * Q_sprime_aprime - Q_sa;
+        
+        trace[lastActionInt][lastStateInt] += 1;
+        
+        for (int i = 0; i < numStates; i++) {
+            for (int j = 0; j < numActions; j++) {
+                valueFunction[j][i] += alpha * delta * trace[j][i];
+                trace[j][i] *= gamma * lambda;
+            }
+        }
 
         Action returnAction = new Action();
         returnAction.intArray = new int[]{newActionInt};
@@ -106,15 +110,16 @@ public class SarsaLambdaAgent implements AgentInterface {
 
         double Q_sa = valueFunction[lastActionInt][lastStateInt];
 
-	double delta = reward - Q_sa;
-	
-	trace[lastActionInt][lastStateInt] += 1;	
+        double delta = reward - Q_sa;
+        
+        trace[lastActionInt][lastStateInt] += 1;	
 
-	for (int i = 0; i < numStates; i++) 
-	    for (int j = 0; j < numActions; j++) {
-		valueFunction[j][i] += alpha * delta * trace[j][i];
-		trace[j][i] *= gamma * lambda;
-	    }	
+        for (int i = 0; i < numStates; i++) {
+            for (int j = 0; j < numActions; j++) {
+                valueFunction[j][i] += alpha * delta * trace[j][i];
+                trace[j][i] *= gamma * lambda;
+            }
+        }	
 
         lastObservation = null;
         lastAction = null;
@@ -143,10 +148,10 @@ public class SarsaLambdaAgent implements AgentInterface {
      * @return
      */
     private int egreedy(int state) {
-	if (randGenerator.nextDouble() <= epsilon)
-	    return randGenerator.nextInt(numActions);
-	else
-	    return maxAction(state);        
+        if (randGenerator.nextDouble() <= epsilon)
+            return randGenerator.nextInt(numActions);
+        else
+            return maxAction(state);        
     }
 
     /* Compute and return the best action for a given state */

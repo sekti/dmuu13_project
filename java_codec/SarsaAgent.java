@@ -25,16 +25,16 @@ public class SarsaAgent implements AgentInterface {
         TaskSpec ts = new TaskSpec(taskSpecification);
 
         /* Make sure that we can handle the problem as specified.
-	 * It is assumed that the actions and observations consists of only discrete 
-	 * vectors of integers.
-	 */
-	assert (ts.getNumContinuousActionDims() == 0);
-	assert (ts.getNumContinuousObsDims() == 0);
-	
-	numStates = ts.getDiscreteObservationRange(0).getMax() + 1;
+         * It is assumed that the actions and observations consists of only discrete 
+         * vectors of integers.
+         */
+        assert (ts.getNumContinuousActionDims() == 0);
+        assert (ts.getNumContinuousObsDims() == 0);
+        
+        numStates = ts.getDiscreteObservationRange(0).getMax() + 1;
         numActions = ts.getDiscreteActionRange(0).getMax() + 1;
 
-	gamma = ts.getDiscountFactor();	
+        gamma = ts.getDiscountFactor();	
 
         valueFunction = new double[numActions][numStates];
     }
@@ -48,7 +48,7 @@ public class SarsaAgent implements AgentInterface {
          */
         Action returnAction = new Action(1, 0, 0);
         returnAction.intArray[0] = newActionInt;       
-	
+        
         lastAction = returnAction.duplicate();
         lastObservation = observation.duplicate();
 
@@ -70,12 +70,12 @@ public class SarsaAgent implements AgentInterface {
 
         int newActionInt = egreedy(newStateInt);      
 
-	double Q_sa = valueFunction[lastActionInt][lastStateInt];
+        double Q_sa = valueFunction[lastActionInt][lastStateInt];
         double Q_sprime_aprime = valueFunction[newActionInt][newStateInt];
-	double new_Q_sa = Q_sa + alpha * (reward + gamma * Q_sprime_aprime - Q_sa);
-	
-	valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
-	
+        double new_Q_sa = Q_sa + alpha * (reward + gamma * Q_sprime_aprime - Q_sa);
+        
+        valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
+        
         /* Creating the action a different way to showcase variety */
         Action returnAction = new Action();
         returnAction.intArray = new int[]{newActionInt};
@@ -97,7 +97,7 @@ public class SarsaAgent implements AgentInterface {
         double Q_sa = valueFunction[lastActionInt][lastStateInt];
         double new_Q_sa = Q_sa + alpha * (reward - Q_sa);
 
-	valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
+        valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
 
         lastObservation = null;
         lastAction = null;
@@ -126,10 +126,10 @@ public class SarsaAgent implements AgentInterface {
      * @return
      */
     private int egreedy(int state) {
-	if (randGenerator.nextDouble() <= epsilon)
-	    return randGenerator.nextInt(numActions);
-	else
-	    return maxAction(state);        
+        if (randGenerator.nextDouble() <= epsilon)
+            return randGenerator.nextInt(numActions);
+        else
+            return maxAction(state);        
     }
 
     /* Compute and return the best action for a given state */

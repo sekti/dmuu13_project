@@ -1,6 +1,6 @@
 CP    =-cp ".;./JavaRLGlueCodec.jar;"
 EXP   =SampleExperiment
-AGENT =Agent
+AGENT =ModelAgent
 ENV   =SampleMinesEnvironment
 
 all : $(EXP).class $(AGENT).class $(ENV).class

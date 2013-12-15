@@ -27,25 +27,19 @@ public class SarsaSoftmaxAgent implements AgentInterface {
         TaskSpec ts = new TaskSpec(taskSpecification);
 
         /* Make sure that we can handle the problem as specified.
-	 * It is assumed that the actions and observations consists of only discrete 
-	 * vectors of integers.
-	 */
-	assert (ts.getNumContinuousActionDims() == 0);
-	assert (ts.getNumContinuousObsDims() == 0);
-	
-	numStates = ts.getDiscreteObservationRange(0).getMax() + 1;
+         * It is assumed that the actions and observations consists of only discrete 
+         * vectors of integers.
+         */
+        assert (ts.getNumContinuousActionDims() == 0);
+        assert (ts.getNumContinuousObsDims() == 0);
+        assert (ts.getDiscreteActionRange(0).getMin() == 0);
+        
+        numStates = ts.getDiscreteObservationRange(0).getMax() + 1;
         numActions = ts.getDiscreteActionRange(0).getMax() + 1;
-
-	gamma = ts.getDiscountFactor();	
+        
+        gamma = ts.getDiscountFactor();	
 
         valueFunction = new double[numActions][numStates];
-
-	// Initialize the value function to a fixed value for all states and actions
-        valueFunction = new double[numActions][numStates];
-	for (int a = 0; a < numActions; a++)
-	    for (int s = 0; s < numStates; s++)
-		valueFunction[a][s] = 0.0;
-
     }
     
     public Action agent_start(Observation observation) {
@@ -57,7 +51,7 @@ public class SarsaSoftmaxAgent implements AgentInterface {
          */
         Action returnAction = new Action(1, 0, 0);
         returnAction.intArray[0] = newActionInt;       
-	
+        
         lastAction = returnAction.duplicate();
         lastObservation = observation.duplicate();
 
@@ -79,12 +73,12 @@ public class SarsaSoftmaxAgent implements AgentInterface {
 
         int newActionInt = softmaxAction(newStateInt);      
 
-	double Q_sa = valueFunction[lastActionInt][lastStateInt];
+        double Q_sa = valueFunction[lastActionInt][lastStateInt];
         double Q_sprime_aprime = valueFunction[newActionInt][newStateInt];
-	double new_Q_sa = Q_sa + alpha * (reward + gamma * Q_sprime_aprime - Q_sa);
-	
-	valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
-	
+        double new_Q_sa = Q_sa + alpha * (reward + gamma * Q_sprime_aprime - Q_sa);
+        
+        valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
+        
         /* Creating the action a different way to showcase variety */
         Action returnAction = new Action();
         returnAction.intArray = new int[]{newActionInt};
@@ -106,7 +100,7 @@ public class SarsaSoftmaxAgent implements AgentInterface {
         double Q_sa = valueFunction[lastActionInt][lastStateInt];
         double new_Q_sa = Q_sa + alpha * (reward - Q_sa);
 
-	valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
+        valueFunction[lastActionInt][lastStateInt] = new_Q_sa;
 
         lastObservation = null;
         lastAction = null;
@@ -131,23 +125,23 @@ public class SarsaSoftmaxAgent implements AgentInterface {
      * where Q(s, k) is the estimated value of taking action k at state s and tau is the "temperature".
      */
     private int softmaxAction(int state) {
-	double[] exps = new double[numActions];
-	
-	double sum = 0;
-	for (int a = 0; a < numActions; a++) {
-	    exps[a] = Math.exp(valueFunction[a][state] / tau);
-	    sum += exps[a];
-	}
+        double[] exps = new double[numActions];
+        
+        double sum = 0;
+        for (int a = 0; a < numActions; a++) {
+            exps[a] = Math.exp(valueFunction[a][state] / tau);
+            sum += exps[a];
+        }
        
-	double r = randGenerator.nextDouble();
-	double limit = 0;
-	for (int a = 0; a < numActions; a++) {
-	    limit += exps[a] / sum;
-	    if (r < limit)
-		return a;
+        double r = randGenerator.nextDouble();
+        double limit = 0;
+        for (int a = 0; a < numActions; a++) {
+            limit += exps[a] / sum;
+            if (r < limit)
+                return a;
         }
 
-	return numActions - 1;
+        return numActions - 1;
     }
 
     /**

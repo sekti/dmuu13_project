@@ -108,7 +108,7 @@ public class SuperModelAgent implements AgentInterface {
    
     public Action agent_step(double reward, Observation observation) {
         int nextState = observation.getInt(0);
-
+			
         // Update our current beliefs about the transition probabilities
         Integer times = p[state][action].get(nextState);
         p[state][action].put(nextState, times == null ? 1 : times + 1);
@@ -118,7 +118,7 @@ public class SuperModelAgent implements AgentInterface {
 
         // Find an optimal policy for the estimated MDP via value iteration
         if (steps % BATCH_SIZE == 0) {
-            //don't do it every time, it is too expensive
+            //don't do it every time, it is too expensive	   
             valueIteration();
         }
 
@@ -151,6 +151,8 @@ public class SuperModelAgent implements AgentInterface {
             freezeLearning = true;
         } else if (message.equals("unfreeze learning")) {
             freezeLearning = false;
+	} else if (message.equals("what is your name?")) {
+	    return "SuperModelAgent";
         } else {
             System.out.println("Unhandled Message received: " + message);
         }
@@ -163,10 +165,10 @@ public class SuperModelAgent implements AgentInterface {
          * from s doing a in the past (with multiplicities). */
         double futureReward = 0;
         
-        for (Map.Entry<Integer, Integer> entry : p[s][a].entrySet()) {
-            /*                times it happend      stateIndex */
-            futureReward += entry.getValue() * v[entry.getKey()];
-        }
+	for (Map.Entry<Integer, Integer> entry : p[s][a].entrySet()) {
+	    /*                times it happend      stateIndex */
+	    futureReward += entry.getValue() * v[entry.getKey()];
+	}
         
         /* and every state once due to prior: */
         for (double d : v) {
@@ -200,7 +202,7 @@ public class SuperModelAgent implements AgentInterface {
     private void valueIteration() {       
         double[] oldv   = null;                 //temporary
         
-        do {
+        do {	    
             for (int s = 0; s < S; s++) {
                 /* for some reason using Double.NEGATIVE_INFINITY here
                  * will break the algorithm. I do not understand that.
@@ -208,14 +210,17 @@ public class SuperModelAgent implements AgentInterface {
                 newv[s] = expectedReward(s, 0, v);
                 pi  [s] = 0;
                 
-                for (int a = 1; a < A; a++) {
-                    double r = expectedReward(s, a, v);
+		// The below is only necessary if we have visited the state s at least once.
+		// Otherwise, the maximization over actions just gives the initialization values above.
+		if (visitsSum[s] > 0)
+		    for (int a = 1; a < A; a++) {
+			double r = expectedReward(s, a, v);
                     
-                    if (r > newv[s]) {
-                        newv[s] = r;
-                        pi  [s] = a;
-                    }
-                }
+			if (r > newv[s]) {
+			    newv[s] = r;
+			    pi  [s] = a;
+			}
+		    }
             }	    
             
             oldv = v;

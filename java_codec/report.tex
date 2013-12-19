@@ -1,5 +1,6 @@
 \documentclass{scrartcl}
 
+\usepackage{amsmath}
 \usepackage{polyglossia}
 \setdefaultlanguage{english}
 \setmainfont[Ligatures=TeX,SmallCapsFont={Latin Modern Roman Caps}]{Georgia}
@@ -10,45 +11,56 @@
 
 \begin{document}
     \author{Sebastian Jobjörnsson\\Stefan Walzer}
-    \title{Decision Making under Uncertainty Project}
+    \title{Mixed model for deterministic and stochastic MDPs}
     \maketitle
-    \section{Main Characteristics of the Agent}
+    % \section{Main Characteristics of the Agent}
     
-    \begin{itemize}
-        \item The Agent assumes that the underlying process is an MDP and the observation is the state of this Markov Process (i.e. its not a POMDP).
-        \item For each pair of state and action, we keep track of which subsequent states resulted (how often) from doing that action in that state. This represents at every point in time our knowledge of the process. Mathematically speaking, for each state and action we store a Dirichlet distribution of the following state and we update this belief occording to the observations we make.
-        \item We store for each pair of state and action the average reward that we have received from them.
-        \item Our strategy will with some probability $ε_t$ (explained below) chose a random action (with distribution explained below) which makes sure that we explore the MDP. With $1 - ε_t$ we will play an action that maximises the expected utility, taking into account the expected reward for the next action and the expected value of the next state which is obtained by the value iteration algorithm.
-    \end{itemize}
+    % \begin{itemize}
+        % \item The Agent assumes that the underlying process is an MDP and the observation is the state of this Markov Process (i.e. its not a POMDP).
+        % \item For each pair of state and action, we keep track of which subsequent states resulted (how often) from doing that action in that state. This represents at every point in time our knowledge of the process. Mathematically speaking, for each state and action we store a Dirichlet distribution of the following state and we update this belief occording to the observations we make.
+        % \item We store for each pair of state and action the average reward that we have received from them.
+        % \item Our strategy will with some probability $ε_t$ (explained below) chose a random action (with distribution explained below) which makes sure that we explore the MDP. With $1 - ε_t$ we will play an action that maximises the expected utility, taking into account the expected reward for the next action and the expected value of the next state which is obtained by the value iteration algorithm.
+    % \end{itemize}
     
-    \section{Details}
+    % \section{Details}
     
-    \begin{itemize}
-        \item In the initial state we imagine we had already observed for each pair of state and action exactly one transition to every other state. This initialisation corresponds to a prior Dirichlet distribution on the transition probabilities. We also assume that for each state and action we observed the maximum possible reward once (which is an optimistic intialisation and helps to ensure that many actions are explored).
-        \item The transition probabilities are stored in a HashMap which saves memory if the underlying transition probability function (depending on state, action and next state) is sparse, i.e. if many transitions never occur.
-        \item The probability for choosing a random action depends on the number of times the state was already visited. The idea is of course that there is less need for exploration in states that were already visited very often.
-        \item If we choose to pick a random action, then the probabily of picking an action is proportional to the inverse of the number of times this action was already chosen in that state (+1). Again we want to favour using actions that were hardly used so far.
-        \item The agent reacts to the \texttt{freeze learning} and \texttt{unfreeze learning} messages.
-    \end{itemize}
+    % \begin{itemize}
+        % \item In the initial state we imagine we had already observed for each pair of state and action exactly one transition to every other state. This initialisation corresponds to a prior Dirichlet distribution on the transition probabilities. We also assume that for each state and action we observed the maximum possible reward once (which is an optimistic intialisation and helps to ensure that many actions are explored).
+        % \item The transition probabilities are stored in a HashMap which saves memory if the underlying transition probability function (depending on state, action and next state) is sparse, i.e. if many transitions never occur.
+        % \item The probability for choosing a random action depends on the number of times the state was already visited. The idea is of course that there is less need for exploration in states that were already visited very often.
+        % \item If we choose to pick a random action, then the probabily of picking an action is proportional to the inverse of the number of times this action was already chosen in that state (+1). Again we want to favour using actions that were hardly used so far.
+        % \item The agent reacts to the \texttt{freeze learning} and \texttt{unfreeze learning} messages.
+    % \end{itemize}
 
-\section{Mixed model for deterministic and stochastic MDPs}
-Our agent assumes that the environment is a fixed but unknown MDP. This MDP is either deterministic or stochastic. Determinism here means that a given state-action pair always leads to the same state and reward. As long as the observations and rewards obtained by interaction by the environment does not rule out the possibility of a deterministic MDP, the agent keeps and updates probabilities $p(M_D)$ and $p(M_S)$ over the two possible model types $M_D$ and $M_S$. If, at some time step, an observation or reward is registered that is inconsistent with a previous observation or reward, then the possibility of a deterministic MDP is abandoned, i.e., $p(M_D)$ is set to 0 and $p(M_S)$ is set to 1.
+\section{General Idea: Two Underlying Models}
+Our agent assumes that the environment is a fixed but unknown MDP. This MDP is either deterministic or stochastic. Determinism here means that a given state-action pair always leads to the same state and reward. As long as the observations and rewards obtained by interaction with the environment does not rule out the possibility of a deterministic MDP, the agent keeps and updates probabilities $p(M_D)$ and $p(M_S)$ over the two possible model types $M_D$ and $M_S$. If, at some time step, an observation or reward is registered that is inconsistent with a previous observation or reward, then the possibility of a deterministic MDP is abandoned, i.e., $p(M_D)$ is set to 0 and $p(M_S)$ is set to 1.
 
-For a deterministic MDP, the parameters that are kept in order to represent the current information state consists of a two-dimensional array $ds$ mapping state-action pairs into fixed states. As soon as a state $s$ has been observed and an action $a$ taken in that state, the resulting state is stored as $ds[s][a]$. When the state action pair $(s,a)$ is encountered in the future, the agent assigns probability 1 to make a transition to $ds[s][a]$ and probability 0 to any other transition (under the assumption of a deterministic MDP). For a state $s$ and an action $a$ such that $a$ has never been executed in $s$, the subjective probability of the agent of a next state $s'$ is set to be $1 / |S|$, where $S$ is the set of states. 
+\section{Deterministic Model $M_D$}
+For the deterministic model $M_D$, the parameters that are kept in order to represent the current information state consists of a two-dimensional array \texttt{ds} mapping state-action pairs into fixed states. As soon as a state $s$ has been observed and an action $a$ taken in that state, the resulting state is stored as \texttt{ds[s][a]}.  When the state action pair $(s,a)$ is considered in the future, the $M_D$ assigns probability 1 to the transition to \texttt{ds[s][a]} and probability 0 to any other transition. For a state $s$ and an action $a$ such that $a$ has never been executed in $s$, the subjective probability of the agent of a next state $s'$ is set to be $1 / |S|$, where $S$ is the set of all states. Similarly to the transition probabilities, the observed rewards are stored in an array $\texttt{rD[s][a]}$. As long as the state action pair has not been encountered, the model predicts the maximum possible reward.
 
-The input to the value iteration part of the algorithm, which is used to compute an optimal policy given the current state of information, consists of an estimate of the transition probabilities $p(s' \mid s, a)$ and expected rewards $r(s, a)$ of the unknown MDP. Denoting the history of actions, observations and rewards up to time step $t$ by $h_t$, this input is computed as
+\section{Stochastic Model}
+The stochastic model has a Dirichlet distribution with parameter $\vec{α} ≡ 1$ as a prior and updates its beliefs according to the observations. To store which transitions occurred (and how often they occurred) we use a two dimensional array of hash tables, one hash table for each state action pair. Assuming that the set of possible transitions is sparse (in the set of all conceivable transitions) this means a significant improvement compared to the naive approach of using a three dimensional array since a transition that does not happen will just be represented by the corresponding entry not existing in the hash table.
+
+If a certain state action pair has been encountered $n$ times with an average reward of $r$ then the model predicts a reward of $(n \cdot r + r_{max})/(n+1)$where $r_{max}$ is the maximum possible reward. This overestimates the reward in early stages and is supposed to lead to a better exploration of the MDP.
+
+\section{Value Iteration}
+The input to the value iteration part of the algorithm, which is used to compute an optimal policy given our current beliefs, consists of an estimate of the transition probabilities $p(s' \mid s, a)$ and expected rewards $r(s, a)$ of the unknown MDP. Denoting the history of actions, observations and rewards up to time step $t$ by $h_t$, this input is computed as
 \begin{align*}
-p( s' \mid s, a, h_t ) & = p(M_D \mid h_t ) p( s' \mid s, a, h_t, M_D) + p(M_S \mid h_t ) p( s' \mid s, a, h_t, M_S) \\
-r( s, a \mid h_t ) & = p(M_D \mid h_t ) r(s, a \ h_t, M_D) + p(M_S \mid h_t ) r(s, a \mid h_t, M_S) .
+p( s' \mid s, a, h_t ) & = p(M_D \mid h_t ) \cdot p( s' \mid s, a, h_t, M_D) + p(M_S \mid h_t ) \cdot p( s' \mid s, a, h_t, M_S) \\
+r( s, a \mid h_t ) & = p(M_D \mid h_t )\cdot r(s, a \mid h_t, M_D) + p(M_S \mid h_t )\cdot r(s, a \mid h_t, M_S).
 \end{align*}
-In the above equations, $p(M_D, \mid h_t )$ and $p(M_S, \mid h_t )$ are the posterior probabilities of the respective models given what has been observed so far. By Bayes' rule, these posterior probabilities may be written as
+
+We have already mentioned how the models $M_D$ and $M_S$ estimate rewards and transition probabilities. In the following we outline how we calculate our beliefs about what the correct model is.
+
+\section{Probability for the Models given the data}
+In the above equations, $p(M_D \mid h_t )$ and $p(M_S \mid h_t )$ are the posterior probabilities of the respective models given what has been observed so far. By Bayes' rule, these posterior probabilities may be written as
 \begin{align*}
 p(M_D \mid h_t) & = \frac{p(M_D) p(h_t \mid M_D)}{p(M_D) p(h_t \mid M_D) + p(M_S) p(h_t \mid M_S)} \\
-p(M_S \mid h_t) & = \frac{p(M_S) p(h_t \mid M_S)}{p(M_D) p(h_t \mid M_D) + p(M_S) p(h_t \mid M_S)} ,
+p(M_S \mid h_t) & = \frac{p(M_S) p(h_t \mid M_S)}{p(M_D) p(h_t \mid M_D) + p(M_S) p(h_t \mid M_S)}
 \end{align*}
 which, under the assumption of a prior $p(M_D) = p(M_S) = \frac{1}{2}$, is reduced to
 \begin{align*}
-p(M_D, \mid h_t ) & = \frac{p(h_t \mid M_D)}{p(h_t \mid M_D) + p(h_t \mid M_S)} \\
+p(M_D \mid h_t ) & = \frac{p(h_t \mid M_D)}{p(h_t \mid M_D) + p(h_t \mid M_S)} \\
 p(M_S \mid h_t ) & = \frac{p(h_t \mid M_S)}{p(h_t \mid M_D) + p(h_t \mid M_S)} .
 \end{align*}
 There are now two cases. Either the history $h_t$ is consistent with a deterministic model, or it is not. If it is not, then we immediately get that $p(h_t \mid M_D) = 0$, and therefore, after this time point, all computations will only involve the Dirichlet-Multinomial model for a stochastic MDP. Assume now that the history is consistent with a deterministic MDP (and also, of course, with a stochastic MDP). Then, for $p(h_t \mid M_D)$, we have
@@ -66,10 +78,18 @@ Similarly, in the special case that $h_t$ is consistent with a deterministic MDP
 \begin{equation*}
 p(h_t \mid M_S) = \prod_{s, a} \frac{Q_{s, a} !}{|S| (|S| + 1) \dots (|S| + Q_{s, a} - 1)} ,
 \end{equation*}
-where $Q_{s, a}$ is the number of times a transition has been observed for the state-action pair $(s, a)$. The expressions derived for $p(h_t \mid M_D)$ and $p(h_t \mid M_D)$ may now be used to compute the posterior model probabilities $p(M_D, \mid h_t )$ and $p(M_S, \mid h_t )$. 
+where $Q_{s, a}$ is the number of times a transition has been observed for the state-action pair $(s, a)$. The expressions derived for $p(h_t \mid M_D)$ and $p(h_t \mid M_D)$ may now be used to compute the posterior model probabilities $p(M_D \mid h_t )$ and $p(M_S \mid h_t )$. 
 \begin{align*}
-p(M_D, \mid h_t ) & = \frac{1}{1 + |S|^k \prod_{s, a} \frac{Q_{s, a} !}{|S| (|S| + 1) \dots (|S| + Q_{s, a} - 1)} } \\
-p(M_S \mid h_t ) & = 1 - p(M_D, \mid h_t) .
+p(M_D \mid h_t ) & = \frac{1}{1 + |S|^k \prod_{s, a} \frac{Q_{s, a} !}{|S| (|S| + 1) \dots (|S| + Q_{s, a} - 1)} } \\
+p(M_S \mid h_t ) & = 1 - p(M_D \mid h_t) .
 \end{align*}
 Algorithmically, this may be done in a stepwise manner. All that is required is to keep track of $Q_{s,a}$. I our code, an array was used, and this was updated after each action-observation step.
+
+\section{The $ε$-Greedy Aspect}
+
+Orthogonal to what has been said before, our agent will with some probability $ε_t$ instead of playing according to the results of the value iteration choose a random action instead which is supposed to ensure better exploration of the MDP.\\
+
+The probability for choosing a random action depends on the number of times the state was already visited. The idea is of course that there is less need for exploration in states that were already visited very often.\\
+
+If we choose to pick a random action, then the probability of picking an action is proportional to the inverse of the number of times this action was already chosen in that state (plus one). Again we want to favour using actions that were hardly used so far.
 \end{document} 

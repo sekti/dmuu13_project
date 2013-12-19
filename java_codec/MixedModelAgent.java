@@ -100,11 +100,11 @@ public class MixedModelAgent implements AgentInterface {
 
         // Initialize the expected reward estimates
         rD = new double[S][A];
-	rS = new double[S][A];
+        rS = new double[S][A];
         for (int s = 0; s < S; s++) {
             for (int a = 0; a < A; a++) {
                 rD[s][a] = ts.getRewardMax();
-		rS[s][a] = ts.getRewardMax();
+                rS[s][a] = ts.getRewardMax();
                 p[s][a] = new StateMap();
             }
         }
@@ -113,14 +113,14 @@ public class MixedModelAgent implements AgentInterface {
         visitsSum = new int[S];
 
         mdpIsStochastic = false;
-	
-	ds = new int[S][A];
+        
+        ds = new int[S][A];
 
-	sFactor = 1;
+        sFactor = 1;
 
-	// "Uniform" prior. We that a deterministic MDP is just as likely as a stochastic one.
-	pD = 0.5;
-	pS = 0.5;
+        // "Uniform" prior. We that a deterministic MDP is just as likely as a stochastic one.
+        pD = 0.5;
+        pS = 0.5;
 
         // Initialize the policy and value function
         pi   = new int[S];
@@ -143,29 +143,29 @@ public class MixedModelAgent implements AgentInterface {
    
     public Action agent_step(double reward, Observation observation) {
         int nextState = observation.getInt(0);
-			
-	//// Handle the deterministic part of the model
-	if (!mdpIsStochastic) {
-	    if (visits[state][action] == 1) {
-		ds[state][action] = nextState;
-		rD[state][action] = reward;
-	    }
-	    else if (visits[state][action] > 1) {
-		sFactor *= visits[state][action] / (S + visits[state][action] - 1);
-		pD = 1 / (1 + sFactor);
-		pS = 1 - pD;
-	       
-		if (nextState != ds[state][action] || reward != rD[state][action]) {
-		    mdpIsStochastic = true;
-		    pD = 0;
-		    pS = 1;
-		}
-	    }	   
-	}	
+                        
+        //// Handle the deterministic part of the model
+        if (!mdpIsStochastic) {
+            if (visits[state][action] == 1) {
+                ds[state][action] = nextState;
+                rD[state][action] = reward;
+            }
+            else if (visits[state][action] > 1) {
+                sFactor *= (double)visits[state][action] / (S + visits[state][action] - 1);
+                pD = 1 / (1 + sFactor);
+                pS = 1 - pD;
+               
+                if (nextState != ds[state][action] || reward != rD[state][action]) {
+                    mdpIsStochastic = true;
+                    pD = 0;
+                    pS = 1;
+                }
+            }	   
+        }	
 
-	//// Handle the stochastic part of the model
+        //// Handle the stochastic part of the model
 
-	// Update our current beliefs about the transition probabilities
+        // Update our current beliefs about the transition probabilities
         Integer times = p[state][action].get(nextState);
         p[state][action].put(nextState, times == null ? 1 : times + 1);
         
@@ -195,26 +195,26 @@ public class MixedModelAgent implements AgentInterface {
     }
     
     public void agent_end(double reward) {
-	//// Handle the deterministic part of the model
-	if (!mdpIsStochastic) {
-	    if (visits[state][action] == 1) {
-		rD[state][action] = reward;
-	    }
-	    else if (visits[state][action] > 1) {
-		sFactor *= visits[state][action] / (S + visits[state][action] - 1);
-		pD = 1 / (1 + sFactor);
-		pS = 1 - pD;
-	       
-		if (reward != rD[state][action]) {
-		    mdpIsStochastic = true;
-		    pD = 0;
-		    pS = 1;
-		}
-	    }	   
-	}	
+        //// Handle the deterministic part of the model
+        if (!mdpIsStochastic) {
+            if (visits[state][action] == 1) {
+                rD[state][action] = reward;
+            }
+            else if (visits[state][action] > 1) {
+                sFactor *= visits[state][action] / (S + visits[state][action] - 1);
+                pD = 1 / (1 + sFactor);
+                pS = 1 - pD;
+               
+                if (reward != rD[state][action]) {
+                    mdpIsStochastic = true;
+                    pD = 0;
+                    pS = 1;
+                }
+            }	   
+        }	
 
-	//// Handle the stochastic part of the model
-	
+        //// Handle the stochastic part of the model
+        
         // Update our current beliefs about the expected rewards	
         rS[state][action] = ((visits[state][action] - 1) * rS[state][action] + reward) / visits[state][action];
     }
@@ -227,46 +227,46 @@ public class MixedModelAgent implements AgentInterface {
             freezeLearning = true;
         } else if (message.equals("unfreeze learning")) {
             freezeLearning = false;
-	} else if (message.equals("what is your name?")) {
-	    return "SuperModelAgent";
+        } else if (message.equals("what is your name?")) {
+            return "MixedModelAgent by Sebastian and Stefan";
         } else {
             System.out.println("Unhandled Message received: " + message);
         }
         
-        return "Agent does not handle any messages.";
+        return "Agent cannot handle this message.";
     }    
    
     private double arraySum(double[] v) {
-	double sum = 0;
-	for (double d : v)
+        double sum = 0;
+        for (double d : v)
             sum += d;
        
-	return sum;
+        return sum;
     }
 
     private double expectedReward(int s, int a, double[] v) {
 
-	// Precompute the sum of v over all states, since we need it twice
-	double vSum = arraySum(v);
+        // Precompute the sum of v over all states, since we need it twice
+        double vSum = arraySum(v);
 
         /* Initialize to sum of v over all states due to prior */
-	double stochasticFutureReward = vSum;
+        double stochasticFutureReward = vSum;
         
-	/* Sum up the values of all the states in which we ended up
-	 * from s doing a in the past (with multiplicities). */
-	for (Map.Entry<Integer, Integer> entry : p[s][a].entrySet()) {
-	    /*                times it happend      stateIndex */
-	    stochasticFutureReward += entry.getValue() * v[entry.getKey()];
-	}        
+        /* Sum up the values of all the states in which we ended up
+         * from s doing a in the past (with multiplicities). */
+        for (Map.Entry<Integer, Integer> entry : p[s][a].entrySet()) {
+            /*                times it happend      stateIndex */
+            stochasticFutureReward += entry.getValue() * v[entry.getKey()];
+        }        
         
-	stochasticFutureReward /= S + visits[s][a];
-	
-	double deterministicFutureReward = visits[s][a] == 0 ? (vSum / S) : v[ds[s][a]];
-	
-	// Return future expected reward weighted according to our current model beliefs
+        stochasticFutureReward /= S + visits[s][a];
+        
+        double deterministicFutureReward = visits[s][a] == 0 ? (vSum / S) : v[ds[s][a]];
+        
+        // Return future expected reward weighted according to our current model beliefs
         return 
-	    pD * (rD[s][a] + gamma * deterministicFutureReward) +
-	    pS * (rS[s][a] + gamma * stochasticFutureReward);
+            pD * (rD[s][a] + gamma * deterministicFutureReward) +
+            pS * (rS[s][a] + gamma * stochasticFutureReward);
     }
     
     private double maxOfArray(double[] v) {
@@ -300,17 +300,17 @@ public class MixedModelAgent implements AgentInterface {
                 newv[s] = expectedReward(s, 0, v);
                 pi  [s] = 0;
                 
-		// The below is only necessary if we have visited the state s at least once.
-		// Otherwise, the maximization over actions just gives the initialization values above.
-		if (visitsSum[s] > 0)
-		    for (int a = 1; a < A; a++) {
-			double r = expectedReward(s, a, v);
+                // The below is only necessary if we have visited the state s at least once.
+                // Otherwise, the maximization over actions just gives the initialization values above.
+                if (visitsSum[s] > 0)
+                    for (int a = 1; a < A; a++) {
+                        double r = expectedReward(s, a, v);
                     
-			if (r > newv[s]) {
-			    newv[s] = r;
-			    pi  [s] = a;
-			}
-		    }
+                        if (r > newv[s]) {
+                            newv[s] = r;
+                            pi  [s] = a;
+                        }
+                    }
             }	    
             
             oldv = v;
